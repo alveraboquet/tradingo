@@ -17,7 +17,7 @@ class Broker:
     def pprint(self, text):
         print(f'[+] {text}')
 
-    def api_call(self, method, url):
+    def api_call(self, method, url, body=None):
         self.pprint(f'{method} {url}')
         ts = int(time.time() * 1000)
         prepared = requests.Request(method, self.base_uri + url).prepare()
@@ -29,6 +29,9 @@ class Broker:
         prepared.headers['FTX-TS'] = str(ts)
         prepared.headers['FTX-SUBACCOUNT'] = urllib.parse.quote_plus(self.SUBACCOUNT)
 
+        if body:
+            prepared.body = body
+
         response = self.s.send(prepared)
         data = json.loads(response.text)
         if not data['success']:
@@ -36,6 +39,17 @@ class Broker:
 
         return data['result']
 
+    def place_limit_order(self, market, side, price, size):
+        order = {
+              "market": market,
+              "side": side,
+              "price": price,
+              "type": "limit",
+              "size": size,
+              "reduceOnly": False,
+              "ioc": False,
+              "postOnly": True,
+              "clientId": None
+            }
 
-b = Broker()
-markets = b.api_call('GET', '/markets')
+        return self.api_call('POST', '/orders', body=json.dumps(order))
